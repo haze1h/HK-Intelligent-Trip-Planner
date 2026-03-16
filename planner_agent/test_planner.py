@@ -8,7 +8,7 @@ from planner_agent.schemas import UserRequest
 
 
 def main() -> None:
-    activities = load_activities("data/hk_activities.json")[:8]
+    activities = load_activities("data/hk_activities.json")
 
     user_request = UserRequest(
         destination="Hong Kong",
