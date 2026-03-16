@@ -1,0 +1,432 @@
+[
+  {
+    "name": "Victoria Peak Tram and Sky Terrace",
+    "category": "sightseeing",
+    "area": "Central",
+    "best_time": "late afternoon",
+    "duration_hours": 2.5,
+    "cost_hkd": 148,
+    "indoor": false,
+    "tags": ["skyline", "iconic", "viewpoint"]
+  },
+  {
+    "name": "Star Ferry Tsim Sha Tsui to Central",
+    "category": "local experience",
+    "area": "Victoria Harbour",
+    "best_time": "evening",
+    "duration_hours": 1.0,
+    "cost_hkd": 6,
+    "indoor": false,
+    "tags": ["harbour", "classic", "budget"]
+  },
+  {
+    "name": "Avenue of Stars Waterfront Walk",
+    "category": "sightseeing",
+    "area": "Tsim Sha Tsui",
+    "best_time": "night",
+    "duration_hours": 1.5,
+    "cost_hkd": 0,
+    "indoor": false,
+    "tags": ["harbour view", "free", "photography"]
+  },
+  {
+    "name": "Tsim Sha Tsui Promenade and Clock Tower",
+    "category": "sightseeing",
+    "area": "Tsim Sha Tsui",
+    "best_time": "sunset",
+    "duration_hours": 1.5,
+    "cost_hkd": 0,
+    "indoor": false,
+    "tags": ["landmark", "walk", "free"]
+  },
+  {
+    "name": "Big Bus Night Tour",
+    "category": "sightseeing",
+    "area": "Hong Kong Island",
+    "best_time": "night",
+    "duration_hours": 1.5,
+    "cost_hkd": 320,
+    "indoor": false,
+    "tags": ["city lights", "guided", "panoramic"]
+  },
+  {
+    "name": "Ngong Ping 360 and Big Buddha",
+    "category": "nature",
+    "area": "Lantau Island",
+    "best_time": "morning",
+    "duration_hours": 4.5,
+    "cost_hkd": 270,
+    "indoor": false,
+    "tags": ["cable car", "mountain", "temple"]
+  },
+  {
+    "name": "Dragon's Back Hiking Trail",
+    "category": "nature",
+    "area": "Shek O",
+    "best_time": "morning",
+    "duration_hours": 3.5,
+    "cost_hkd": 0,
+    "indoor": false,
+    "tags": ["hiking", "coastal", "free"]
+  },
+  {
+    "name": "Lamma Island Seafood Day Trip",
+    "category": "nature",
+    "area": "Lamma Island",
+    "best_time": "daytime",
+    "duration_hours": 5.0,
+    "cost_hkd": 220,
+    "indoor": false,
+    "tags": ["island", "ferry", "seafood"]
+  },
+  {
+    "name": "Tai O Fishing Village Walk",
+    "category": "local experience",
+    "area": "Lantau Island",
+    "best_time": "afternoon",
+    "duration_hours": 3.0,
+    "cost_hkd": 90,
+    "indoor": false,
+    "tags": ["stilt houses", "heritage", "village"]
+  },
+  {
+    "name": "Hong Kong Wetland Park",
+    "category": "nature",
+    "area": "Tin Shui Wai",
+    "best_time": "morning",
+    "duration_hours": 2.5,
+    "cost_hkd": 30,
+    "indoor": false,
+    "tags": ["birdwatching", "eco", "family"]
+  },
+  {
+    "name": "Repulse Bay Beach Relax",
+    "category": "nature",
+    "area": "Southern District",
+    "best_time": "afternoon",
+    "duration_hours": 2.5,
+    "cost_hkd": 0,
+    "indoor": false,
+    "tags": ["beach", "free", "chill"]
+  },
+  {
+    "name": "The Peak Circle Walk",
+    "category": "nature",
+    "area": "The Peak",
+    "best_time": "morning",
+    "duration_hours": 1.5,
+    "cost_hkd": 0,
+    "indoor": false,
+    "tags": ["easy walk", "view", "free"]
+  },
+  {
+    "name": "M+ Museum",
+    "category": "museum",
+    "area": "West Kowloon",
+    "best_time": "afternoon",
+    "duration_hours": 2.5,
+    "cost_hkd": 120,
+    "indoor": true,
+    "tags": ["modern", "design", "visual culture"]
+  },
+  {
+    "name": "Hong Kong Palace Museum",
+    "category": "museum",
+    "area": "West Kowloon",
+    "best_time": "afternoon",
+    "duration_hours": 2.0,
+    "cost_hkd": 70,
+    "indoor": true,
+    "tags": ["history", "culture", "artifacts"]
+  },
+  {
+    "name": "Hong Kong Museum of History",
+    "category": "museum",
+    "area": "Tsim Sha Tsui East",
+    "best_time": "morning",
+    "duration_hours": 2.0,
+    "cost_hkd": 10,
+    "indoor": true,
+    "tags": ["heritage", "education", "budget"]
+  },
+  {
+    "name": "Hong Kong Science Museum",
+    "category": "family-friendly",
+    "area": "Tsim Sha Tsui East",
+    "best_time": "afternoon",
+    "duration_hours": 2.5,
+    "cost_hkd": 25,
+    "indoor": true,
+    "tags": ["interactive", "kids", "education"]
+  },
+  {
+    "name": "Hong Kong Space Museum",
+    "category": "museum",
+    "area": "Tsim Sha Tsui",
+    "best_time": "afternoon",
+    "duration_hours": 1.5,
+    "cost_hkd": 10,
+    "indoor": true,
+    "tags": ["astronomy", "dome", "education"]
+  },
+  {
+    "name": "Hong Kong Museum of Art",
+    "category": "art",
+    "area": "Tsim Sha Tsui",
+    "best_time": "afternoon",
+    "duration_hours": 2.0,
+    "cost_hkd": 30,
+    "indoor": true,
+    "tags": ["exhibition", "culture", "harbour view"]
+  },
+  {
+    "name": "PMQ Creative Hub",
+    "category": "art",
+    "area": "Central",
+    "best_time": "afternoon",
+    "duration_hours": 1.5,
+    "cost_hkd": 0,
+    "indoor": true,
+    "tags": ["design", "local brands", "creative"]
+  },
+  {
+    "name": "Tai Kwun Heritage and Art Centre",
+    "category": "art",
+    "area": "Central",
+    "best_time": "late afternoon",
+    "duration_hours": 2.0,
+    "cost_hkd": 0,
+    "indoor": true,
+    "tags": ["heritage", "gallery", "architecture"]
+  },
+  {
+    "name": "K11 MUSEA Art and Retail",
+    "category": "art",
+    "area": "Tsim Sha Tsui",
+    "best_time": "evening",
+    "duration_hours": 2.0,
+    "cost_hkd": 0,
+    "indoor": true,
+    "tags": ["contemporary", "mall", "installation"]
+  },
+  {
+    "name": "Temple Street Night Market Food Crawl",
+    "category": "food",
+    "area": "Yau Ma Tei",
+    "best_time": "night",
+    "duration_hours": 2.5,
+    "cost_hkd": 150,
+    "indoor": false,
+    "tags": ["street food", "night market", "local"]
+  },
+  {
+    "name": "Central Dim Sum Brunch",
+    "category": "food",
+    "area": "Central",
+    "best_time": "morning",
+    "duration_hours": 1.5,
+    "cost_hkd": 180,
+    "indoor": true,
+    "tags": ["dim sum", "cantonaise", "brunch"]
+  },
+  {
+    "name": "Cha Chaan Teng Breakfast",
+    "category": "food",
+    "area": "Mong Kok",
+    "best_time": "morning",
+    "duration_hours": 1.0,
+    "cost_hkd": 55,
+    "indoor": true,
+    "tags": ["milk tea", "toast", "local cafe"]
+  },
+  {
+    "name": "Sheung Wan Cafe Hop",
+    "category": "food",
+    "area": "Sheung Wan",
+    "best_time": "afternoon",
+    "duration_hours": 2.0,
+    "cost_hkd": 120,
+    "indoor": true,
+    "tags": ["coffee", "dessert", "hipster"]
+  },
+  {
+    "name": "Sai Kung Seafood Dinner",
+    "category": "food",
+    "area": "Sai Kung",
+    "best_time": "evening",
+    "duration_hours": 2.0,
+    "cost_hkd": 280,
+    "indoor": true,
+    "tags": ["seafood", "waterfront", "group meal"]
+  },
+  {
+    "name": "Lan Kwai Fong Bar Hopping",
+    "category": "nightlife",
+    "area": "Central",
+    "best_time": "night",
+    "duration_hours": 3.0,
+    "cost_hkd": 300,
+    "indoor": true,
+    "tags": ["bars", "social", "party"]
+  },
+  {
+    "name": "Soho Rooftop Cocktail Night",
+    "category": "nightlife",
+    "area": "Soho",
+    "best_time": "night",
+    "duration_hours": 2.5,
+    "cost_hkd": 260,
+    "indoor": true,
+    "tags": ["rooftop", "cocktails", "city view"]
+  },
+  {
+    "name": "Happy Valley Wednesday Horse Racing",
+    "category": "nightlife",
+    "area": "Happy Valley",
+    "best_time": "night",
+    "duration_hours": 3.0,
+    "cost_hkd": 120,
+    "indoor": false,
+    "tags": ["racing", "event", "local vibe"]
+  },
+  {
+    "name": "Tsim Sha Tsui Jazz Lounge",
+    "category": "nightlife",
+    "area": "Tsim Sha Tsui",
+    "best_time": "night",
+    "duration_hours": 2.0,
+    "cost_hkd": 220,
+    "indoor": true,
+    "tags": ["live music", "relax", "date night"]
+  },
+  {
+    "name": "Mong Kok Ladies' Market",
+    "category": "shopping",
+    "area": "Mong Kok",
+    "best_time": "evening",
+    "duration_hours": 2.0,
+    "cost_hkd": 200,
+    "indoor": false,
+    "tags": ["bargain", "souvenir", "street market"]
+  },
+  {
+    "name": "Sneaker Street Fa Yuen Street",
+    "category": "shopping",
+    "area": "Mong Kok",
+    "best_time": "afternoon",
+    "duration_hours": 1.5,
+    "cost_hkd": 600,
+    "indoor": false,
+    "tags": ["sportswear", "fashion", "youth"]
+  },
+  {
+    "name": "Harbour City Mall",
+    "category": "shopping",
+    "area": "Tsim Sha Tsui",
+    "best_time": "afternoon",
+    "duration_hours": 3.0,
+    "cost_hkd": 500,
+    "indoor": true,
+    "tags": ["luxury", "mall", "brands"]
+  },
+  {
+    "name": "Causeway Bay Times Square",
+    "category": "shopping",
+    "area": "Causeway Bay",
+    "best_time": "evening",
+    "duration_hours": 2.0,
+    "cost_hkd": 350,
+    "indoor": true,
+    "tags": ["department store", "fashion", "busy"]
+  },
+  {
+    "name": "IFC Mall Luxury Shopping",
+    "category": "shopping",
+    "area": "Central",
+    "best_time": "afternoon",
+    "duration_hours": 2.0,
+    "cost_hkd": 800,
+    "indoor": true,
+    "tags": ["premium", "designer", "air-conditioned"]
+  },
+  {
+    "name": "Stanley Market Stroll",
+    "category": "shopping",
+    "area": "Stanley",
+    "best_time": "afternoon",
+    "duration_hours": 2.0,
+    "cost_hkd": 180,
+    "indoor": false,
+    "tags": ["souvenir", "coastal", "casual"]
+  },
+  {
+    "name": "Hong Kong Disneyland",
+    "category": "family-friendly",
+    "area": "Lantau Island",
+    "best_time": "daytime",
+    "duration_hours": 8.0,
+    "cost_hkd": 639,
+    "indoor": false,
+    "tags": ["theme park", "kids", "full day"]
+  },
+  {
+    "name": "Ocean Park Hong Kong",
+    "category": "family-friendly",
+    "area": "Wong Chuk Hang",
+    "best_time": "daytime",
+    "duration_hours": 7.0,
+    "cost_hkd": 498,
+    "indoor": false,
+    "tags": ["rides", "animals", "family"]
+  },
+  {
+    "name": "Noah's Ark Theme Park",
+    "category": "family-friendly",
+    "area": "Ma Wan",
+    "best_time": "afternoon",
+    "duration_hours": 3.0,
+    "cost_hkd": 198,
+    "indoor": true,
+    "tags": ["edutainment", "kids", "interactive"]
+  },
+  {
+    "name": "Hong Kong Observation Wheel",
+    "category": "family-friendly",
+    "area": "Central Harbourfront",
+    "best_time": "evening",
+    "duration_hours": 1.0,
+    "cost_hkd": 20,
+    "indoor": false,
+    "tags": ["view", "kids", "short activity"]
+  },
+  {
+    "name": "Man Mo Temple and Hollywood Road Walk",
+    "category": "local experience",
+    "area": "Sheung Wan",
+    "best_time": "morning",
+    "duration_hours": 1.5,
+    "cost_hkd": 0,
+    "indoor": false,
+    "tags": ["temple", "heritage", "walking"]
+  },
+  {
+    "name": "Sham Shui Po Street Life and Snacks",
+    "category": "local experience",
+    "area": "Sham Shui Po",
+    "best_time": "afternoon",
+    "duration_hours": 2.5,
+    "cost_hkd": 100,
+    "indoor": false,
+    "tags": ["local district", "budget eats", "authentic"]
+  },
+  {
+    "name": "Wong Tai Sin Temple Visit",
+    "category": "local experience",
+    "area": "Kowloon",
+    "best_time": "morning",
+    "duration_hours": 1.0,
+    "cost_hkd": 0,
+    "indoor": false,
+    "tags": ["culture", "religion", "free"]
+  }
+]
