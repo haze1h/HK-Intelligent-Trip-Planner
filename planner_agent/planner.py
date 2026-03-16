@@ -10,16 +10,24 @@ from planner_agent.schemas import Activity, UserRequest
 
 
 class PlannerAgent:
-    def __init__(self, model_name: str = "qwen3:4b") -> None:
+    def __init__(self, model_name: str = "mistral:7b") -> None:
         self.llm_client = OllamaLLMClient(model=model_name)
 
     def plan(self, user_request: UserRequest, activities: List[Activity]) -> Dict[str, Any]:
+        print("[1] Building prompt...")
         prompt = build_planner_prompt(user_request, activities)
+
+        print("[2] Sending prompt to Ollama...")
         raw_output = self.llm_client.generate(prompt)
+
+        print("[3] Raw output received:")
+        print(raw_output[:1000])
 
         try:
             parsed = self._extract_json(raw_output)
+            print("[4] JSON extracted.")
             self._validate_output(parsed, user_request)
+            print("[5] Output validated.")
             return parsed
         except Exception as e:
             raise ValueError(
@@ -109,7 +117,7 @@ if __name__ == "__main__":
         avoid=["museum"],
     )
 
-    planner = PlannerAgent(model_name="qwen3:4b")
+    planner = PlannerAgent(model_name="mistral:7b")
     result = planner.plan(request, activities)
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
