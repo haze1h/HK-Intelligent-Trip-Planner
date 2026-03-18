@@ -55,7 +55,7 @@ Planner Agent (generate itinerary)
 ↓
 Budget Tool (estimate_budget)
 ↓
-Critic Agent (future)
+Critic Agent (evaluate itinerary quality)
 ↓
 Frontend
 
@@ -69,7 +69,7 @@ Frontend
 |----------|--------------|
 | Budget Tool | Estimate fixed costs & validate total budget |
 | Planner Agent | Generate itinerary using activity budget |
-| Critic Agent | Evaluate plan quality (future work) |
+| Critic Agent | Evaluate itinerary quality, feasibility, and user preference alignment |
 | Frontend | Display results |
 
 ---
