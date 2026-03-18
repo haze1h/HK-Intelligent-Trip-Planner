@@ -1,80 +1,231 @@
-from typing import Dict, List
-import json
+from __future__ import annotations
 
-# ================== 固定成本表（2026 香港真實參考，中檔）==================
-DAILY_FIXED_COSTS = {
-    "accommodation_per_person": 800,   # 中檔酒店/民宿（可後續改成 400/1200）
-    "meals_per_day": 250,              # 茶餐廳 + 晚餐
-    "transport_per_day": 80,           # MTR + 八達通
-    "misc_per_day": 100                # 飲料、零食、小紀念品
+from dataclasses import asdict
+from typing import Any, Dict, List
+
+from planner_agent.schemas import BudgetAllocation, UserRequest
+
+# 香港固定成本估算：做成“预算档位 + 启发式”而不是写死一个值
+# 数值可按你们项目需要再微调
+BUDGET_STYLE_TABLE = {
+    "economy": {
+        "accommodation_per_person_per_night": 450,
+        "meals_per_person_per_day": 140,
+        "transport_per_person_per_day": 55,
+        "misc_per_person_per_day": 50,
+    },
+    "standard": {
+        "accommodation_per_person_per_night": 750,
+        "meals_per_person_per_day": 220,
+        "transport_per_person_per_day": 75,
+        "misc_per_person_per_day": 80,
+    },
+    "premium": {
+        "accommodation_per_person_per_night": 1300,
+        "meals_per_person_per_day": 380,
+        "transport_per_person_per_day": 110,
+        "misc_per_person_per_day": 130,
+    },
 }
 
 
-def estimate_budget(planner_output: Dict) -> Dict:
-    if not planner_output or "itinerary" not in planner_output:
-        raise ValueError("輸入必須是 Planner Agent 的輸出 dict")
+def infer_budget_style(user_request: UserRequest) -> str:
+    """
+    预算档位推断逻辑：
+    1. 如果用户显式传了 budget_style，直接用
+    2. 否则看 preferences 中是否有 budget / luxury 等关键词
+    3. 再根据“人均日预算”粗略推断
+    """
+    if user_request.budget_style in {"economy", "standard", "premium"}:
+        return user_request.budget_style
 
-    days = planner_output.get("days", 1)
-    user_budget = planner_output.get("budget_limit_hkd", 800)
+    pref_text = " ".join([p.lower() for p in user_request.preferences])
 
-    # 1. 計算活動總費用（優先用每日加總，更準確）
-    activity_total = 0
-    for day in planner_output.get("itinerary", []):
-        activity_total += day.get("daily_cost_hkd", 0)
+    if any(word in pref_text for word in ["luxury", "premium", "high-end"]):
+        return "premium"
+    if any(word in pref_text for word in ["budget", "cheap", "affordable"]):
+        return "economy"
 
-    # 2. 固定開支
-    accommodation = DAILY_FIXED_COSTS["accommodation_per_person"] * days
-    food = DAILY_FIXED_COSTS["meals_per_day"] * days
-    transport = DAILY_FIXED_COSTS["transport_per_day"] * days
-    misc = DAILY_FIXED_COSTS["misc_per_day"] * days
+    travelers = max(1, user_request.travelers)
+    days = max(1, user_request.days)
+    per_person_per_day = user_request.total_budget_hkd / travelers / days
 
-    grand_total = activity_total + accommodation + food + transport + misc
+    if per_person_per_day < 700:
+        return "economy"
+    if per_person_per_day < 1600:
+        return "standard"
+    return "premium"
 
-    # 3. 判斷與建議
-    within_budget = grand_total <= user_budget
-    over_by = max(0, grand_total - user_budget)
 
-    suggestions = []
-    if over_by > 0:
-        suggestions.append(f"超支 {over_by} HKD，建議減少高價活動（如迪士尼、昂坪纜車）")
-        suggestions.append("可改住九龍區（住宿降至 500-600/晚）或多用 MTR")
-    else:
-        suggestions.append("預算足夠，可考慮增加購物或夜景活動")
+def _pace_transport_multiplier(pace: str) -> float:
+    pace = (pace or "moderate").lower()
+    if pace == "slow":
+        return 0.9
+    if pace == "fast":
+        return 1.15
+    return 1.0
 
-    result = {
-        "total_estimated_cost_hkd": round(grand_total),
-        "budget_limit_hkd": user_budget,
-        "within_budget": within_budget,
-        "over_budget_by": over_by,
-        "breakdown": {
-            "activities": round(activity_total),
-            "accommodation": round(accommodation),
-            "food": round(food),
-            "transport": round(transport),
-            "misc": round(misc)
-        },
-        "suggestions": suggestions
+
+def _pace_meal_multiplier(pace: str) -> float:
+    pace = (pace or "moderate").lower()
+    if pace == "slow":
+        return 0.95
+    if pace == "fast":
+        return 1.08
+    return 1.0
+
+
+def estimate_fixed_costs(user_request: UserRequest) -> BudgetAllocation:
+    """
+    根据预算档位、天数、人数、行程节奏，动态估算固定成本。
+    “固定成本”不是绝对真值，而是 planning 前的 heuristic estimate。
+    """
+    style = infer_budget_style(user_request)
+    base = BUDGET_STYLE_TABLE[style]
+
+    travelers = max(1, user_request.travelers)
+    days = max(1, user_request.days)
+
+    accommodation = (
+        base["accommodation_per_person_per_night"] * travelers * days
+    )
+    food = (
+        base["meals_per_person_per_day"]
+        * _pace_meal_multiplier(user_request.pace)
+        * travelers
+        * days
+    )
+    transport = (
+        base["transport_per_person_per_day"]
+        * _pace_transport_multiplier(user_request.pace)
+        * travelers
+        * days
+    )
+    misc = (
+        base["misc_per_person_per_day"] * travelers * days
+    )
+
+    fixed_cost_breakdown = {
+        "accommodation": round(accommodation, 2),
+        "food": round(food, 2),
+        "transport": round(transport, 2),
+        "misc": round(misc, 2),
     }
 
-    return result
+    fixed_cost_total = round(sum(fixed_cost_breakdown.values()), 2)
+    activity_budget = round(user_request.total_budget_hkd - fixed_cost_total, 2)
+
+    assumptions = [
+        f"Budget style inferred as '{style}' based on preferences and per-person daily budget.",
+        "Accommodation, food, transport, and misc are heuristic estimates, not exact prices.",
+        "Planner should only spend the remaining activity budget on attractions/experiences.",
+    ]
+
+    return BudgetAllocation(
+        total_budget_hkd=round(user_request.total_budget_hkd, 2),
+        budget_style=style,
+        fixed_cost_estimate_hkd=fixed_cost_total,
+        activity_budget_hkd=activity_budget,
+        fixed_cost_breakdown=fixed_cost_breakdown,
+        assumptions=assumptions,
+    )
 
 
-# ================== quick test ==================
+def estimate_budget(
+    planner_output: Dict[str, Any],
+    user_request: UserRequest,
+) -> Dict[str, Any]:
+    """
+    对 Planner 输出做最终预算核算：
+    - activities 是否在 activity budget 内
+    - total trip 是否在 total budget 内
+    """
+    if not planner_output or "itinerary" not in planner_output:
+        raise ValueError("planner_output must be a valid planner output dict")
+
+    allocation = estimate_fixed_costs(user_request)
+
+    activity_total = 0.0
+    for day in planner_output.get("itinerary", []):
+        activity_total += float(day.get("daily_cost_hkd", 0))
+
+    total_trip_cost = round(activity_total + allocation.fixed_cost_estimate_hkd, 2)
+
+    activities_within_budget = activity_total <= allocation.activity_budget_hkd
+    total_trip_within_budget = total_trip_cost <= allocation.total_budget_hkd
+
+    activity_over_by = max(0.0, round(activity_total - allocation.activity_budget_hkd, 2))
+    total_over_by = max(0.0, round(total_trip_cost - allocation.total_budget_hkd, 2))
+
+    suggestions: List[str] = []
+    if allocation.activity_budget_hkd <= 0:
+        suggestions.append(
+            "Estimated fixed costs already consume the full budget. Increase total budget or switch to economy style."
+        )
+    elif not activities_within_budget:
+        suggestions.append(
+            "Selected activities exceed the remaining activity budget. Replace expensive attractions with lower-cost options."
+        )
+    else:
+        suggestions.append(
+            "Activities fit within the remaining activity budget."
+        )
+
+    if not total_trip_within_budget:
+        suggestions.append(
+            "Total trip cost exceeds the user's total budget. Consider cheaper accommodation, meals, or fewer paid activities."
+        )
+    else:
+        suggestions.append(
+            "Total trip cost is within the user's total budget."
+        )
+
+    return {
+        "total_budget_hkd": allocation.total_budget_hkd,
+        "budget_style": allocation.budget_style,
+        "fixed_cost_estimate_hkd": allocation.fixed_cost_estimate_hkd,
+        "activity_budget_hkd": allocation.activity_budget_hkd,
+        "activity_total_estimated_cost_hkd": round(activity_total, 2),
+        "total_trip_estimated_cost_hkd": total_trip_cost,
+        "activities_within_budget": activities_within_budget,
+        "total_trip_within_budget": total_trip_within_budget,
+        "activity_over_budget_by_hkd": activity_over_by,
+        "total_over_budget_by_hkd": total_over_by,
+        "breakdown": {
+            "activities": round(activity_total, 2),
+            **allocation.fixed_cost_breakdown,
+        },
+        "assumptions": allocation.assumptions,
+        "suggestions": suggestions,
+    }
+
+
 if __name__ == "__main__":
+    sample_request = UserRequest(
+        destination="Hong Kong",
+        days=2,
+        total_budget_hkd=2500,
+        preferences=["sightseeing", "budget", "local food"],
+        pace="moderate",
+    )
+
     sample_planner_output = {
         "destination": "Hong Kong",
-        "days": 1,  # 注意改成 1
-        "total_estimated_cost_hkd": 645,
-        "budget_limit_hkd": 800,
-        "within_budget": True,
+        "days": 2,
+        "activity_budget_hkd": 810,
+        "total_estimated_activity_cost_hkd": 760,
+        "activities_within_budget": True,
         "itinerary": [
-            {
-                "day": 1,
-                "daily_cost_hkd": 760
-            }
+            {"day": 1, "daily_cost_hkd": 320},
+            {"day": 2, "daily_cost_hkd": 440},
         ],
-        "planning_summary": "Day 1: Sightseeing, shopping, and nightlife with a harbour view."
+        "planning_summary": "A 2-day Hong Kong itinerary focused on sightseeing and local food.",
     }
 
-    budget_result = estimate_budget(sample_planner_output)
-    print(json.dumps(budget_result, indent=2, ensure_ascii=False))
+    allocation = estimate_fixed_costs(sample_request)
+    print("=== Allocation ===")
+    print(asdict(allocation))
+
+    final_budget = estimate_budget(sample_planner_output, sample_request)
+    print("=== Final Budget Check ===")
+    print(final_budget)

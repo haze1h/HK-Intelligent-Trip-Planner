@@ -1,70 +1,169 @@
-# HK Intelligent Trip Planner – Planner Agent
+# HK Intelligent Trip Planner
 
 This module implements the **Planner Agent** for the HK Intelligent Trip Planner project.  
 It generates a **multi-day travel itinerary for Hong Kong** using a **local Large Language Model (LLM)** and a predefined activity dataset.
 
-The Planner Agent takes:
+目前系统设计说明：
+本系统将用户输入的预算定义为**整趟旅行的总预算（total trip budget）**，并通过模块化设计将预算处理与行程生成解耦。首先，由 **Budget Tool** 根据旅行天数、人数、节奏（pace）以及预算档位（**budget_style**）对固定成本进行启发式估算。`budget_style` 表示旅行消费水平（如 *economy / standard / premium*），可以由用户显式指定，或根据用户偏好（如 “budget”“luxury”）以及人均日预算自动推断，不同档位对应不同的住宿、餐饮和交通成本水平。在此基础上，系统计算出固定成本（accommodation、food、transport、misc），并从总预算中扣除，得到剩余可用于活动的预算（activity budget）。随后，**Planner Agent** 仅基于该活动预算和活动数据集生成多日行程（itinerary），不涉及任何固定成本的计算。为保证结果可靠，Planner 会对模型输出进行结构校验与费用重算，而不直接信任 LLM 的预算判断。最后，再由 **Budget Tool** 将活动成本与固定成本合并进行整体预算核算，判断活动是否超出活动预算，以及整趟旅行是否超出总预算。通过这种“预算分配 → 行程生成 → 预算校验”的流程，并结合 `budget_style` 的动态成本估计机制，系统能够在保证灵活性的同时提供更符合真实旅行情境的规划结果。
 
-- a **user travel request**
-- a **set of available activities**
 
-and generates a structured **JSON itinerary** that can be used by other system components (e.g., Budget Tool, Critic Agent, Frontend).
+⚠️ **IMPORTANT UPDATE (Architecture Change)**  
+The system now includes a **Budget Tool module**.  
+The Planner Agent is **no longer responsible for total budget calculation**.
 
 ---
 
 # 1. Module Function
 
-The Planner Agent workflow:
+The Planner Agent generates a structured **JSON itinerary** based on:
 
-1. **Load activity dataset** (`hk_activities.json`)
-2. **Select a subset of activities**
-3. **Build a prompt** combining:
+- a **user travel request**
+- a **set of available activities**
+- an **activity budget (provided by Budget Tool)**
+
+---
+
+## Updated Workflow
+
+1. Load activity dataset (`hk_activities.json`)
+2. Call **Budget Tool** to estimate:
+   - fixed travel costs (住宿 / 餐饮 / 交通 / 杂项)
+   - remaining **activity budget**
+3. Build prompt using:
    - user request
    - activity dataset
-   - JSON schema instructions
-4. **Send the prompt to a local LLM**
-5. **Extract JSON from model output**
-6. **Validate the itinerary structure**
-7. Return the itinerary JSON
+   - activity budget constraint
+4. Send prompt to local LLM
+5. Extract JSON from model output
+6. Validate itinerary structure
+7. Recalculate costs (do not trust model)
+8. Return final itinerary JSON
 
-Example output format:
+---
+
+# 2. System Architecture (Updated)
+
+The system is now modular:
+
+```
+
+User Request
+↓
+Budget Tool (estimate_fixed_costs)
+↓
+Planner Agent (generate itinerary)
+↓
+Budget Tool (estimate_budget)
+↓
+Critic Agent (future)
+↓
+Frontend
+
+```
+
+---
+
+## Responsibility Separation
+
+| Component | Responsibility |
+|----------|--------------|
+| Budget Tool | Estimate fixed costs & validate total budget |
+| Planner Agent | Generate itinerary using activity budget |
+| Critic Agent | Evaluate plan quality (future work) |
+| Frontend | Display results |
+
+---
+
+# 3. Budget Handling Logic (Core Design)
+
+The user-provided budget is interpreted as:
+
+```
+
+TOTAL TRIP BUDGET
+
+```
+
+The system computes:
+
+```
+
+activity_budget = total_budget - fixed_cost_estimate
+
+````
+
+---
+
+## Important Rules
+
+Planner Agent must:
+
+- ONLY use `activity_budget_hkd`
+- NOT include:
+  - accommodation
+  - meals
+  - transport
+  - misc costs
+- ONLY select activities from dataset
+
+---
+
+# 4. Example Output (Updated Schema)
 
 ```json
 {
   "destination": "Hong Kong",
   "days": 2,
-  "total_estimated_cost_hkd": 492,
-  "budget_limit_hkd": 800,
-  "within_budget": true,
-  "itinerary": [...],
-  "planning_summary": "..."
+  "activity_budget_hkd": 1200,
+  "total_estimated_activity_cost_hkd": 980,
+  "activities_within_budget": true,
+  "itinerary": [
+    {
+      "day": 1,
+      "morning": {...},
+      "afternoon": {...},
+      "evening": {...},
+      "daily_cost_hkd": 0,
+      "notes": "..."
+    }
+  ],
+  "planning_summary": "...",
+  "budget_context": {
+    "total_budget_hkd": 3000,
+    "fixed_cost_estimate_hkd": 1800,
+    "activity_budget_hkd": 1200
+  }
 }
 ````
 
 ---
 
-# 2. Model Used
+# 5. Model Used
 
-The Planner Agent uses a **local LLM instead of a paid API**.
-
-Model:
+The Planner Agent uses a **local LLM**:
 
 ```
 mistral:7b
 ```
 
-Run via **Ollama**.
+Run via:
 
-Advantages:
+```
+Ollama
+```
+
+---
+
+## Advantages
 
 * Free
 * No API key required
 * Works offline
-* Suitable for academic projects
+* Suitable for coursework
 
 ---
 
-# 3. Setup Instructions
+# 6. Setup Instructions
 
 ## Install Ollama
 
@@ -80,15 +179,11 @@ ollama --version
 
 ---
 
-## Download the model
-
-Run:
+## Download Model
 
 ```bash
 ollama run mistral:7b
 ```
-
-This downloads the model (~4GB).
 
 Exit after download:
 
@@ -98,9 +193,7 @@ Exit after download:
 
 ---
 
-## Install Python dependencies
-
-Inside the project directory:
+## Install Python Dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -108,150 +201,159 @@ pip install -r requirements.txt
 
 ---
 
-## Run Planner Agent test
+# 7. Run Full System Test
 
 ```bash
 python -m planner_agent.test_planner
 ```
 
-Expected log output:
+---
+
+## Expected Logs
 
 ```
-[1] Building prompt...
-[2] Sending prompt to Ollama...
-[3] Raw output received...
-[4] JSON extracted.
-[5] Output validated.
+[1] Estimating fixed costs and activity budget...
+[2] Building prompt...
+[3] Sending prompt to Ollama...
+[4] Raw output received...
+[5] JSON extracted.
+[6] Output validated.
+[7] Output normalized.
 ```
-
-This indicates successful itinerary generation.
 
 ---
 
-# 4. Activity Dataset
+# 8. Activity Dataset
 
-The dataset is stored in:
+Location:
 
 ```
 data/hk_activities.json
 ```
 
-The dataset contains **43 activities in Hong Kong**, covering categories such as:
+Contains ~43 Hong Kong activities.
+
+Categories include:
 
 * sightseeing
 * museums
 * nature
 * food
-* nightlife
 * shopping
+* nightlife
 * family-friendly
-* local experiences
-
-Each activity includes fields such as:
-
-* name
-* category
-* area
-* best_time
-* duration_hours
-* cost_hkd
-* indoor
-* tags
 
 ---
 
-# 5. Random Activity Sampling (Important)
+# 9. Activity Sampling (Important)
 
-To keep the prompt length manageable for a local LLM, the Planner Agent **does not send all 43 activities to the model at once**.
-
-Instead, **10 activities are randomly sampled each time the planner runs.**
-
-Example implementation:
+To control prompt length:
 
 ```python
-import random
-
-activities = load_activities("data/hk_activities.json")
 activities = random.sample(activities, 10)
 ```
 
-### Why this is done
+---
 
-Local LLMs such as **Mistral 7B** can become unstable with very long prompts.
+## Why Sampling Is Used
 
-Using all 43 activities may cause:
+Local LLMs (e.g., Mistral 7B) may fail with long prompts:
 
-* incomplete JSON outputs
-* formatting errors
-* the model ignoring schema constraints
-
-Random sampling ensures:
-
-* prompt length stays manageable
-* better generation stability
-* itinerary diversity across runs
-
-Each run of the planner may therefore produce **different travel plans**.
+* incomplete JSON
+* schema violations
+* ignored constraints
 
 ---
 
-# 6. Project Structure (Relevant Files)
+## Recommended Range
 
 ```
-planner_agent/
-│
-├── planner.py
-│   Main Planner Agent logic
-│
-├── prompt_builder.py
-│   Builds the LLM prompt
-│
-├── ollama_client.py
-│   Handles communication with Ollama
-│
-├── load_data.py
-│   Loads activity dataset
-│
-├── schemas.py
-│   Defines data structures
-│
-└── test_planner.py
-    Script for testing the Planner Agent
+10 ~ 25 activities
+```
+
+⚠️ Too few activities may cause:
+
+* missing days
+* repeated activities
+* invalid itinerary
+
+---
+
+# 10. Debug Logging
+
+Planner Agent prints logs:
+
+```
+[1] Estimating fixed costs
+[2] Building prompt
+[3] Sending prompt
+[4] JSON extracted
+[5] Output validated
+[6] Output normalized
 ```
 
 ---
 
-# 7. Debug Logging
+# 11. Key Design Principles
 
-The Planner Agent prints debug logs to help diagnose issues:
+## 1. Do NOT trust LLM output
 
-```
-[1] Building prompt...
-[2] Sending prompt to Ollama...
-[3] Raw output received...
-[4] JSON extracted.
-[5] Output validated.
-```
+All costs are:
 
-These logs help detect:
-
-* prompt issues
-* LLM formatting errors
-* JSON extraction failures
+* recalculated in code
+* validated strictly
 
 ---
 
-# 8. Known Limitations
+## 2. Separate concerns
 
-Current limitations include:
-
-* Output quality depends on the local LLM.
-* Local models are less reliable than large cloud models.
-
-Possible improvements:
-
-* stronger prompt engineering
-* critic agent for itinerary review
-* budget optimization module
+* Planner → itinerary
+* Budget Tool → money
+* Critic → quality
 
 ---
+
+## 3. Enforce strict JSON schema
+
+Planner output must always:
+
+* match required keys
+* match day count
+* include all time slots
+
+---
+
+# 12. Known Limitations
+
+* Local LLM may:
+
+  * skip days
+  * break JSON
+  * ignore constraints
+* Budget estimation is heuristic
+* Activity sampling affects quality
+
+---
+
+# 13. Future Improvements
+
+* Add Critic Agent
+* Improve budget estimation
+* Multi-user support
+* Frontend UI
+* Retry mechanism for LLM failures
+
+---
+
+# 14. Notes for Developers
+
+⚠️ When extending the system:
+
+* Do NOT move budget logic back into Planner
+* Always use Budget Tool for cost calculations
+* Keep JSON schema consistent across modules
+
+---
+
+```
+```
