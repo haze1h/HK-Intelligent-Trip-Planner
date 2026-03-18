@@ -1,0 +1,64 @@
+{
+  "trip_overview": {
+    "destination": "Hong Kong",
+    "days": 2,
+    "budget_hkd": 6000,
+    "preferences": [
+      "sightseeing",
+      "food",
+      "culture",
+      "harbour"
+    ],
+    "pace": "moderate",
+    "must_include": [
+      "Star Ferry"
+    ],
+    "avoid": [
+      "hiking"
+    ]
+  },
+  "planner_summary": {
+    "planning_summary": "Itinerary for a 2-day trip to Hong Kong with a standard budget of HKD 6000. The total estimated activity cost is HKD 1846. Activities include museums, shopping, nature, and local experiences.",
+    "itinerary_preview": [
+      {
+        "day": 1,
+        "morning": "Hong Kong Museum of History",
+        "afternoon": "Harbour City Mall",
+        "evening": "Avenue of Stars Waterfront Walk",
+        "daily_cost_hkd": 510.0
+      },
+      {
+        "day": 2,
+        "morning": "Ngong Ping 360 and Big Buddha",
+        "afternoon": "Hong Kong Palace Museum",
+        "evening": "Star Ferry Tsim Sha Tsui to Central",
+        "daily_cost_hkd": 346.0
+      }
+    ]
+  },
+  "budget_summary": {
+    "activity_budget_hkd": 3750.0,
+    "activity_total_estimated_cost_hkd": 856.0,
+    "total_trip_estimated_cost_hkd": 3106.0,
+    "total_trip_within_budget": true
+  },
+  "critic_summary": {
+    "overall_score": 80,
+    "is_feasible": true,
+    "summary": "The itinerary is generally feasible. Overall score: 80/100 (0 high, 1 medium, 4 low issues). Main concerns: Day 2 spans 3 different areas and may involve too much travel. Strengths: Destination matches the user request; The itinerary length matches the requested number of days.",
+    "top_strengths": [
+      "Destination matches the user request.",
+      "The itinerary length matches the requested number of days.",
+      "No repeated activities were found in the itinerary."
+    ],
+    "top_issues": [
+      "The itinerary uses only a small portion of the available activity budget and may be overly conservative.",
+      "Day 2 spans 3 different areas and may involve too much travel.",
+      "Some preferences are not strongly represented: ['food']."
+    ],
+    "top_suggestions": [
+      "Consider adding one higher-value activity if the user wants a richer experience.",
+      "Cluster Day 2 activities into fewer areas to reduce commuting time."
+    ]
+  }
+}
