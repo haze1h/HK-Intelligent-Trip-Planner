@@ -9,7 +9,6 @@
 
 ```mermaid
 flowchart TD
-
 A["User Request\n用户输入"] --> B["Budget Tool\n估算固定成本"]
 B --> C["Activity Budget\n活动预算分配"]
 
@@ -20,8 +19,6 @@ E --> F["Budget Tool\n最终预算核算"]
 F --> G["Critic Agent\n行程质量评估"]
 
 G --> H["Final Output\n最终结果输出"]
-
----
 
 # 📌 核心设计思想（非常重要）
 
