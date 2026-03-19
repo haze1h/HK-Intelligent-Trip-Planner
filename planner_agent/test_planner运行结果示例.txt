@@ -1,0 +1,160 @@
+[1] Estimating fixed costs and activity budget... 
+[2] Building prompt... 
+[3] Sending prompt to Ollama... 
+[4] Raw output received:
+json
+{
+  "destination": "Hong Kong",
+  "days": 2,
+  "activity_budget_hkd": 3750.0,
+  "itinerary": [
+    {
+      "day": 1,
+      "morning": {
+        "activity_name": "Wong Tai Sin Temple Visit",
+        "reason": "Cultural visit"
+      },
+      "afternoon": {
+        "activity_name": "Hong Kong Museum of Art",
+        "reason": "Art and harbour view"
+      },
+      "evening": {
+        "activity_name": "Temple Street Night Market Food Crawl",
+        "reason": "Street food experience"
+      },
+      "notes": "Day 1: Cultural, art, and food experiences in Kowloon."
+    },
+    {
+      "day": 2,
+      "morning": {
+        "activity_name": "Star Ferry Tsim Sha Tsui to Central",
+        "reason": "Harbour crossing"
+      },
+      "afternoon": {
+        "activity_name": "PMQ Creative Hub",
+        "reason": "Local art and design"
+      },
+      "evening": {
+        "activity_name": "Tsim Sha Tsui Jazz Lounge",
+        "reason": "Live music and relaxation"
+      },
+      "notes": "Day 2:
+[5] JSON extracted.
+[6] Minimal output validated.
+[7] Output resolved and normalized.
+=== Planner Result ===
+{
+  "destination": "Hong Kong",
+  "days": 2,
+  "activity_budget_hkd": 3750.0,
+  "total_estimated_activity_cost_hkd": 406.0,
+  "activities_within_budget": true,
+  "itinerary": [
+    {
+      "day": 1,
+      "notes": "Day 1: Cultural, art, and food experiences in Kowloon.",
+      "morning": {
+        "activity_name": "Wong Tai Sin Temple Visit",
+        "area": "Kowloon",
+        "category": "local experience",
+        "estimated_cost_hkd": 0.0,
+        "duration_hours": 1.0,
+        "reason": "Cultural visit"
+      },
+      "afternoon": {
+        "activity_name": "Hong Kong Museum of Art",
+        "area": "Tsim Sha Tsui",
+        "category": "art",
+        "estimated_cost_hkd": 30.0,
+        "duration_hours": 2.0,
+        "reason": "Art and harbour view"
+      },
+      "evening": {
+        "activity_name": "Temple Street Night Market Food Crawl",
+        "area": "Yau Ma Tei",
+        "category": "food",
+        "estimated_cost_hkd": 150.0,
+        "duration_hours": 2.5,
+        "reason": "Street food experience"
+      },
+      "daily_cost_hkd": 180.0
+    },
+    {
+      "day": 2,
+      "notes": "Day 2: Harbour crossing, local art, and live music in Central.",
+      "morning": {
+        "activity_name": "Star Ferry Tsim Sha Tsui to Central",
+        "area": "Victoria Harbour",
+        "category": "local experience",
+        "estimated_cost_hkd": 6.0,
+        "duration_hours": 1.0,
+        "reason": "Harbour crossing"
+      },
+      "afternoon": {
+        "activity_name": "PMQ Creative Hub",
+        "area": "Central",
+        "category": "art",
+        "estimated_cost_hkd": 0.0,
+        "duration_hours": 1.5,
+        "reason": "Local art and design"
+      },
+      "evening": {
+        "activity_name": "Tsim Sha Tsui Jazz Lounge",
+        "area": "Tsim Sha Tsui",
+        "category": "nightlife",
+        "estimated_cost_hkd": 220.0,
+        "duration_hours": 2.0,
+        "reason": "Live music and relaxation"
+      },
+      "daily_cost_hkd": 226.0
+    }
+  ],
+  "planning_summary": "A 2-day Hong Kong itinerary focused on local experience, art, food. It covers Kowloon, Tsim Sha Tsui, Yau Ma Tei and keeps estimated activity spending at HKD 406.0 against an activity budget cap of HKD 3750.0.",
+  "budget_context": {
+    "total_budget_hkd": 6000,
+    "budget_style": "standard",
+    "fixed_cost_estimate_hkd": 2250.0,
+    "activity_budget_hkd": 3750.0,
+    "fixed_cost_breakdown": {
+      "accommodation": 1500,
+      "food": 440.0,
+      "transport": 150.0,
+      "misc": 160
+    },
+    "assumptions": [
+      "Budget style inferred as 'standard' based on preferences and per-person daily budget.",   
+      "Accommodation, food, transport, and misc are heuristic estimates, not exact prices.",     
+      "Planner should only spend the remaining activity budget on attractions/experiences."      
+    ]
+  }
+}
+
+=== Final Budget Check ===
+{
+  "total_budget_hkd": 6000,
+  "budget_style": "standard",
+  "fixed_cost_estimate_hkd": 2250.0,
+  "activity_budget_hkd": 3750.0,
+  "activity_total_estimated_cost_hkd": 406.0,
+  "total_trip_estimated_cost_hkd": 2656.0,
+  "activities_within_budget": true,
+  "total_trip_within_budget": true,
+  "activity_over_budget_by_hkd": 0.0,
+  "total_over_budget_by_hkd": 0.0,
+  "breakdown": {
+    "activities": 406.0,
+    "accommodation": 1500,
+    "food": 440.0,
+    "transport": 150.0,
+    "misc": 160
+  },
+  "assumptions": [
+    "Budget style inferred as 'standard' based on preferences and per-person daily budget.",     
+    "Accommodation, food, transport, and misc are heuristic estimates, not exact prices.",       
+    "Planner should only spend the remaining activity budget on attractions/experiences."        
+  ],
+  "suggestions": [
+    "Activities fit within the remaining activity budget.",
+    "Total trip cost is within the user's total budget."
+  ]
+}

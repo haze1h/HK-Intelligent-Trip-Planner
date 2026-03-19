@@ -1,121 +1,190 @@
-# HK Intelligent Trip Planner
 
-This module implements the **Planner Agent** for the HK Intelligent Trip Planner project.  
-It generates a **multi-day travel itinerary for Hong Kong** using a **local Large Language Model (LLM)** and a predefined activity dataset.
+# HK 智能行程规划系统（HK Intelligent Trip Planner）
 
-目前系统设计说明：
-本系统将用户输入的预算定义为**整趟旅行的总预算（total trip budget）**，并通过模块化设计将预算处理与行程生成解耦。首先，由 **Budget Tool** 根据旅行天数、人数、节奏（pace）以及预算档位（**budget_style**）对固定成本进行启发式估算。`budget_style` 表示旅行消费水平（如 *economy / standard / premium*），可以由用户显式指定，或根据用户偏好（如 “budget”“luxury”）以及人均日预算自动推断，不同档位对应不同的住宿、餐饮和交通成本水平。在此基础上，系统计算出固定成本（accommodation、food、transport、misc），并从总预算中扣除，得到剩余可用于活动的预算（activity budget）。随后，**Planner Agent** 仅基于该活动预算和活动数据集生成多日行程（itinerary），不涉及任何固定成本的计算。为保证结果可靠，Planner 会对模型输出进行结构校验与费用重算，而不直接信任 LLM 的预算判断。最后，再由 **Budget Tool** 将活动成本与固定成本合并进行整体预算核算，判断活动是否超出活动预算，以及整趟旅行是否超出总预算。通过这种“预算分配 → 行程生成 → 预算校验”的流程，并结合 `budget_style` 的动态成本估计机制，系统能够在保证灵活性的同时提供更符合真实旅行情境的规划结果。
-
-
-⚠️ **IMPORTANT UPDATE (Architecture Change)**  
-The system now includes a **Budget Tool module**.  
-The Planner Agent is **no longer responsible for total budget calculation**.
+本项目实现了一个基于本地大语言模型（LLM）的**香港旅行规划系统**，能够根据用户需求自动生成多日行程，并进行预算校验与质量评估。
 
 ---
 
-# 1. Module Function
+# 🧠 当前系统架构（核心流程）
 
-The Planner Agent generates a structured **JSON itinerary** based on:
+```mermaid
+flowchart TD
 
-- a **user travel request**
-- a **set of available activities**
-- an **activity budget (provided by Budget Tool)**
+A[User Request 用户输入] --> B[Budget Tool<br/>估算固定成本]
+B --> C[Activity Budget<br/>活动预算分配]
 
----
+C --> D[Planner Agent (LLM)<br/>选择活动名称]
+D --> E[Resolver / Normalizer<br/>回填真实数据]
 
-## Updated Workflow
+E --> F[Budget Tool<br/>最终预算核算]
+F --> G[Critic Agent<br/>行程质量评估]
 
-1. Load activity dataset (`hk_activities.json`)
-2. Call **Budget Tool** to estimate:
-   - fixed travel costs (住宿 / 餐饮 / 交通 / 杂项)
-   - remaining **activity budget**
-3. Build prompt using:
-   - user request
-   - activity dataset
-   - activity budget constraint
-4. Send prompt to local LLM
-5. Extract JSON from model output
-6. Validate itinerary structure
-7. Recalculate costs (do not trust model)
-8. Return final itinerary JSON
-
----
-
-# 2. System Architecture (Updated)
-
-The system is now modular:
-
-```
-
-User Request
-↓
-Budget Tool (estimate_fixed_costs)
-↓
-Planner Agent (generate itinerary)
-↓
-Budget Tool (estimate_budget)
-↓
-Critic Agent (evaluate itinerary quality)
-↓
-Frontend
-
-```
-
----
-
-## Responsibility Separation
-
-| Component | Responsibility |
-|----------|--------------|
-| Budget Tool | Estimate fixed costs & validate total budget |
-| Planner Agent | Generate itinerary using activity budget |
-| Critic Agent | Evaluate itinerary quality, feasibility, and user preference alignment |
-| Frontend | Display results |
-
----
-
-# 3. Budget Handling Logic (Core Design)
-
-The user-provided budget is interpreted as:
-
-```
-
-TOTAL TRIP BUDGET
-
-```
-
-The system computes:
-
-```
-
-activity_budget = total_budget - fixed_cost_estimate
-
+G --> H[Final Output<br/>最终结果输出]
 ````
 
 ---
 
-## Important Rules
+# 📌 核心设计思想（非常重要）
 
-Planner Agent must:
+本系统采用以下关键设计原则：
 
-- ONLY use `activity_budget_hkd`
-- NOT include:
-  - accommodation
-  - meals
-  - transport
-  - misc costs
-- ONLY select activities from dataset
+### ✅ 1. LLM 只负责“选择”，不负责“计算”
+
+* LLM **只输出活动名称 + 简短理由**
+* 不负责：
+
+  * 成本计算
+  * 时长计算
+  * 预算汇总
+* 所有数值由代码生成（避免 hallucination）
 
 ---
 
-# 4. Example Output (Updated Schema)
+### ✅ 2. 预算逻辑完全解耦
+
+用户输入的是：
+
+```
+TOTAL TRIP BUDGET（整趟旅行总预算）
+```
+
+系统流程：
+
+```
+总预算 → 固定成本估算 → 剩余活动预算 → 行程生成 → 最终预算校验
+```
+
+---
+
+### ✅ 3. 不信任 LLM 的数值
+
+所有以下字段：
+
+* cost
+* duration
+* daily_cost
+* total_cost
+
+👉 **全部由代码从 dataset 回填**
+
+---
+
+### ✅ 4. 强约束：只能使用数据集中的活动
+
+LLM 被严格限制：
+
+* ❌ 不允许编造活动
+* ❌ 不允许输出 dataset 外的内容
+* ❌ 若无匹配偏好 → 忽略，不编造
+
+---
+
+# 🧩 模块说明
+
+## 1. Budget Tool（预算模块）
+
+负责：
+
+* 推断预算风格（economy / standard / premium）
+* 估算固定成本：
+
+  * 住宿
+  * 餐饮
+  * 交通
+  * 杂项
+* 计算活动预算（activity budget）
+
+---
+
+## 2. Planner Agent（行程生成）
+
+输入：
+
+* 用户请求
+* 活动数据集
+* 活动预算 cap
+
+输出：
+
+* 每天 morning / afternoon / evening 的活动名称
+* 简短理由
+
+⚠️ 不输出任何预算数值
+
+---
+
+## 3. Resolver / Normalizer（关键模块）
+
+负责：
+
+* 根据 activity_name 查 dataset
+* 补全真实字段：
+
+  * area
+  * category
+  * cost_hkd
+  * duration_hours
+* 计算：
+
+  * daily_cost
+  * total_cost
+
+👉 **这是系统稳定的关键**
+
+---
+
+## 4. Budget Tool（二次使用）
+
+再次计算：
+
+* 活动总费用
+* 总旅行费用
+* 是否超预算
+
+---
+
+## 5. Critic Agent（评估模块）
+
+评估：
+
+* 预算合理性
+* 行程节奏
+* 偏好匹配
+* 跨区问题
+* 时间合理性
+
+输出：
+
+* score（评分）
+* issues（问题）
+* suggestions（建议）
+
+---
+
+# 🔁 当前完整流程
+
+1. 读取活动数据（hk_activities.json）
+2. Budget Tool 估算固定成本
+3. 得到 activity_budget_hkd
+4. 构建 prompt（包含预算约束）
+5. LLM 选择活动
+6. 提取 JSON
+7. 结构校验
+8. Resolver 回填真实数据
+9. Budget Tool 计算最终预算
+10. Critic Agent 评估质量
+11. 输出最终结果
+
+---
+
+# 📊 示例输出结构
 
 ```json
 {
   "destination": "Hong Kong",
   "days": 2,
-  "activity_budget_hkd": 1200,
-  "total_estimated_activity_cost_hkd": 980,
+  "activity_budget_hkd": 3750,
+  "total_estimated_activity_cost_hkd": 406,
   "activities_within_budget": true,
   "itinerary": [
     {
@@ -123,237 +192,118 @@ Planner Agent must:
       "morning": {...},
       "afternoon": {...},
       "evening": {...},
-      "daily_cost_hkd": 0,
-      "notes": "..."
+      "daily_cost_hkd": 180
     }
   ],
   "planning_summary": "...",
-  "budget_context": {
-    "total_budget_hkd": 3000,
-    "fixed_cost_estimate_hkd": 1800,
-    "activity_budget_hkd": 1200
-  }
+  "budget_context": {...}
 }
-````
-
----
-
-# 5. Model Used
-
-The Planner Agent uses a **local LLM**:
-
-```
-mistral:7b
-```
-
-Run via:
-
-```
-Ollama
 ```
 
 ---
 
-## Advantages
+# 🤖 使用模型
 
-* Free
-* No API key required
-* Works offline
-* Suitable for coursework
+本项目使用：
+
+```
+mistral:7b (via Ollama)
+```
+
+优势：
+
+* 免费
+* 本地运行
+* 无 API key
+* 适合课程项目
 
 ---
 
-# 6. Setup Instructions
-
-## Install Ollama
-
-Download from:
-
-[https://ollama.com/download](https://ollama.com/download)
-
-Verify installation:
-
-```bash
-ollama --version
-```
-
----
-
-## Download Model
-
-```bash
-ollama run mistral:7b
-```
-
-Exit after download:
-
-```
-/exit
-```
-
----
-
-## Install Python Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-# 7. Run Full System Test
+# ⚙️ 运行方式
 
 ```bash
 python -m planner_agent.test_planner
 ```
 
----
+或：
 
-## Expected Logs
-
-```
-[1] Estimating fixed costs and activity budget...
-[2] Building prompt...
-[3] Sending prompt to Ollama...
-[4] Raw output received...
-[5] JSON extracted.
-[6] Output validated.
-[7] Output normalized.
+```bash
+python -m critic_agent.test_critic
 ```
 
 ---
 
-# 8. Activity Dataset
-
-Location:
-
-```
-data/hk_activities.json
-```
-
-Contains ~43 Hong Kong activities.
-
-Categories include:
-
-* sightseeing
-* museums
-* nature
-* food
-* shopping
-* nightlife
-* family-friendly
-
----
-
-# 9. Activity Sampling (Important)
-
-To control prompt length:
+# 🧪 重要设计：活动采样
 
 ```python
 activities = random.sample(activities, 10)
 ```
 
----
+原因：
 
-## Why Sampling Is Used
-
-Local LLMs (e.g., Mistral 7B) may fail with long prompts:
-
-* incomplete JSON
-* schema violations
-* ignored constraints
+* 控制 prompt 长度
+* 避免 LLM 输出崩溃（JSON截断）
 
 ---
 
-## Recommended Range
+# 🛑 已解决的关键问题
+
+| 问题              | 当前状态   |
+| --------------- | ------ |
+| LLM 编造活动        | ✅ 已解决  |
+| 预算不一致           | ✅ 已解决  |
+| summary 与真实值冲突  | ✅ 已解决  |
+| must_include 失效 | ✅ 已修复  |
+| JSON 不稳定        | ✅ 大幅改善 |
+
+---
+
+# ⚠️ 已知限制
+
+* 本地 LLM 仍可能：
+
+  * JSON 截断
+  * 忽略部分约束（概率性）
+* 预算为启发式估算
+* 数据集规模有限
+
+---
+
+# 🚀 可选优化方向
+
+* 引入 replan（基于 critic feedback）
+* 提升预算利用率
+* 更精细的区域聚类
+* 多用户支持
+* 前端界面
+
+---
+
+# 🧑‍💻 开发注意事项
+
+⚠️ 不要破坏以下原则：
+
+* 不要让 LLM 计算预算
+* 不要信任 LLM 的 cost
+* 必须通过 dataset 回填数据
+* JSON schema 必须严格一致
+
+---
+
+# 📎 数据集
+
+路径：
 
 ```
-10 ~ 25 activities
+data/hk_activities.json
 ```
 
-⚠️ Too few activities may cause:
+包含约 40+ 香港活动：
 
-* missing days
-* repeated activities
-* invalid itinerary
+* sightseeing
+* food
+* culture
+* shopping
+* nightlife
+* museum
 
----
-
-# 10. Debug Logging
-
-Planner Agent prints logs:
-
-```
-[1] Estimating fixed costs
-[2] Building prompt
-[3] Sending prompt
-[4] JSON extracted
-[5] Output validated
-[6] Output normalized
-```
-
----
-
-# 11. Key Design Principles
-
-## 1. Do NOT trust LLM output
-
-All costs are:
-
-* recalculated in code
-* validated strictly
-
----
-
-## 2. Separate concerns
-
-* Planner → itinerary
-* Budget Tool → money
-* Critic → quality
-
----
-
-## 3. Enforce strict JSON schema
-
-Planner output must always:
-
-* match required keys
-* match day count
-* include all time slots
-
----
-
-# 12. Known Limitations
-
-* Local LLM may:
-
-  * skip days
-  * break JSON
-  * ignore constraints
-* Budget estimation is heuristic
-* Activity sampling affects quality
-
----
-
-# 13. Future Improvements
-
-* Add Critic Agent
-* Improve budget estimation
-* Multi-user support
-* Frontend UI
-* Retry mechanism for LLM failures
-
----
-
-# 14. Notes for Developers
-
-⚠️ When extending the system:
-
-* Do NOT move budget logic back into Planner
-* Always use Budget Tool for cost calculations
-* Keep JSON schema consistent across modules
-
----
-
-```
-```

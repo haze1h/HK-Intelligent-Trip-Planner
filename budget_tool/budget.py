@@ -5,8 +5,6 @@ from typing import Any, Dict, List
 
 from planner_agent.schemas import BudgetAllocation, UserRequest
 
-# 香港固定成本估算：做成“预算档位 + 启发式”而不是写死一个值
-# 数值可按你们项目需要再微调
 BUDGET_STYLE_TABLE = {
     "economy": {
         "accommodation_per_person_per_night": 450,
@@ -30,12 +28,6 @@ BUDGET_STYLE_TABLE = {
 
 
 def infer_budget_style(user_request: UserRequest) -> str:
-    """
-    预算档位推断逻辑：
-    1. 如果用户显式传了 budget_style，直接用
-    2. 否则看 preferences 中是否有 budget / luxury 等关键词
-    3. 再根据“人均日预算”粗略推断
-    """
     if user_request.budget_style in {"economy", "standard", "premium"}:
         return user_request.budget_style
 
@@ -76,19 +68,13 @@ def _pace_meal_multiplier(pace: str) -> float:
 
 
 def estimate_fixed_costs(user_request: UserRequest) -> BudgetAllocation:
-    """
-    根据预算档位、天数、人数、行程节奏，动态估算固定成本。
-    “固定成本”不是绝对真值，而是 planning 前的 heuristic estimate。
-    """
     style = infer_budget_style(user_request)
     base = BUDGET_STYLE_TABLE[style]
 
     travelers = max(1, user_request.travelers)
     days = max(1, user_request.days)
 
-    accommodation = (
-        base["accommodation_per_person_per_night"] * travelers * days
-    )
+    accommodation = base["accommodation_per_person_per_night"] * travelers * days
     food = (
         base["meals_per_person_per_day"]
         * _pace_meal_multiplier(user_request.pace)
@@ -101,9 +87,7 @@ def estimate_fixed_costs(user_request: UserRequest) -> BudgetAllocation:
         * travelers
         * days
     )
-    misc = (
-        base["misc_per_person_per_day"] * travelers * days
-    )
+    misc = base["misc_per_person_per_day"] * travelers * days
 
     fixed_cost_breakdown = {
         "accommodation": round(accommodation, 2),
@@ -135,11 +119,6 @@ def estimate_budget(
     planner_output: Dict[str, Any],
     user_request: UserRequest,
 ) -> Dict[str, Any]:
-    """
-    对 Planner 输出做最终预算核算：
-    - activities 是否在 activity budget 内
-    - total trip 是否在 total budget 内
-    """
     if not planner_output or "itinerary" not in planner_output:
         raise ValueError("planner_output must be a valid planner output dict")
 
@@ -147,8 +126,13 @@ def estimate_budget(
 
     activity_total = 0.0
     for day in planner_output.get("itinerary", []):
-        activity_total += float(day.get("daily_cost_hkd", 0))
+        day_total = 0.0
+        for slot in ["morning", "afternoon", "evening"]:
+            slot_obj = day.get(slot, {})
+            day_total += float(slot_obj.get("estimated_cost_hkd", 0))
+        activity_total += day_total
 
+    activity_total = round(activity_total, 2)
     total_trip_cost = round(activity_total + allocation.fixed_cost_estimate_hkd, 2)
 
     activities_within_budget = activity_total <= allocation.activity_budget_hkd
@@ -167,32 +151,28 @@ def estimate_budget(
             "Selected activities exceed the remaining activity budget. Replace expensive attractions with lower-cost options."
         )
     else:
-        suggestions.append(
-            "Activities fit within the remaining activity budget."
-        )
+        suggestions.append("Activities fit within the remaining activity budget.")
 
     if not total_trip_within_budget:
         suggestions.append(
             "Total trip cost exceeds the user's total budget. Consider cheaper accommodation, meals, or fewer paid activities."
         )
     else:
-        suggestions.append(
-            "Total trip cost is within the user's total budget."
-        )
+        suggestions.append("Total trip cost is within the user's total budget.")
 
     return {
         "total_budget_hkd": allocation.total_budget_hkd,
         "budget_style": allocation.budget_style,
         "fixed_cost_estimate_hkd": allocation.fixed_cost_estimate_hkd,
         "activity_budget_hkd": allocation.activity_budget_hkd,
-        "activity_total_estimated_cost_hkd": round(activity_total, 2),
+        "activity_total_estimated_cost_hkd": activity_total,
         "total_trip_estimated_cost_hkd": total_trip_cost,
         "activities_within_budget": activities_within_budget,
         "total_trip_within_budget": total_trip_within_budget,
         "activity_over_budget_by_hkd": activity_over_by,
         "total_over_budget_by_hkd": total_over_by,
         "breakdown": {
-            "activities": round(activity_total, 2),
+            "activities": activity_total,
             **allocation.fixed_cost_breakdown,
         },
         "assumptions": allocation.assumptions,
@@ -216,8 +196,20 @@ if __name__ == "__main__":
         "total_estimated_activity_cost_hkd": 760,
         "activities_within_budget": True,
         "itinerary": [
-            {"day": 1, "daily_cost_hkd": 320},
-            {"day": 2, "daily_cost_hkd": 440},
+            {
+                "day": 1,
+                "morning": {"estimated_cost_hkd": 120},
+                "afternoon": {"estimated_cost_hkd": 80},
+                "evening": {"estimated_cost_hkd": 120},
+                "daily_cost_hkd": 320,
+            },
+            {
+                "day": 2,
+                "morning": {"estimated_cost_hkd": 140},
+                "afternoon": {"estimated_cost_hkd": 150},
+                "evening": {"estimated_cost_hkd": 150},
+                "daily_cost_hkd": 440,
+            },
         ],
         "planning_summary": "A 2-day Hong Kong itinerary focused on sightseeing and local food.",
     }
