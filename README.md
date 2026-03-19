@@ -10,17 +10,16 @@
 ```mermaid
 flowchart TD
 
-A[User Request 用户输入] --> B[Budget Tool<br/>估算固定成本]
-B --> C[Activity Budget<br/>活动预算分配]
+A["User Request\n用户输入"] --> B["Budget Tool\n估算固定成本"]
+B --> C["Activity Budget\n活动预算分配"]
 
-C --> D[Planner Agent (LLM)<br/>选择活动名称]
-D --> E[Resolver / Normalizer<br/>回填真实数据]
+C --> D["Planner Agent LLM\n选择活动名称"]
+D --> E["Resolver / Normalizer\n回填真实数据"]
 
-E --> F[Budget Tool<br/>最终预算核算]
-F --> G[Critic Agent<br/>行程质量评估]
+E --> F["Budget Tool\n最终预算核算"]
+F --> G["Critic Agent\n行程质量评估"]
 
-G --> H[Final Output<br/>最终结果输出]
-````
+G --> H["Final Output\n最终结果输出"]
 
 ---
 
