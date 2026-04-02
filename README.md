@@ -1,310 +1,503 @@
+# HK Intelligent Trip Planner
 
-# HK 智能行程规划系统（HK Intelligent Trip Planner）
+A course project that generates multi-day Hong Kong travel itineraries with a local LLM.
 
-本项目实现了一个基于本地大语言模型（LLM）的**香港旅行规划系统**，能够根据用户需求自动生成多日行程，并进行预算校验与质量评估。
-
----
-
-# 🧠 当前系统架构（核心流程）
-
-User Request（用户输入）
-
-→ Budget Tool（估算固定成本：住宿 / 餐饮 / 交通）
-
-→ Activity Budget（计算活动预算：剩余预算）
-
-→ Planner Agent（LLM，仅选择活动名称）
-
-→ Resolver / Normalizer（回填真实数据 + 计算费用）
-
-→ Budget Tool（最终预算核算）
-
-→ Critic Agent（行程质量评估）
-
-→ Final Output（最终结果输出）
-
-
-
-# 📌 核心设计思想（非常重要）
-
-本系统采用以下关键设计原则：
-
-### ✅ 1. LLM 只负责“选择”，不负责“计算”
-
-* LLM **只输出活动名称 + 简短理由**
-* 不负责：
-
-  * 成本计算
-  * 时长计算
-  * 预算汇总
-* 所有数值由代码生成（避免 hallucination）
+The system combines a React + TypeScript frontend, a FastAPI backend, budget estimation logic, itinerary generation, and itinerary critique.
 
 ---
 
-### ✅ 2. 预算逻辑完全解耦
+## Project Overview
 
-用户输入的是：
+This project accepts user inputs such as trip duration, total budget, pace, preferences, and must-include activities, then generates a Hong Kong itinerary.
 
+### Main components
+
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS
+- **Backend**: FastAPI
+- **LLM runtime**: Ollama
+- **Model**: `mistral:7b`
+- **Dataset**: `data/hk_activities.json`
+
+### Current workflow
+
+1. User submits trip requirements in the frontend.
+2. Frontend sends a `POST` request to `/api/travel-plan`.
+3. Backend normalizes the request.
+4. Budget logic estimates fixed trip costs and available activity budget.
+5. Planner agent calls the local LLM to generate the itinerary.
+6. Critic agent evaluates the result.
+7. Backend returns itinerary + budget summary + critique report.
+
+---
+
+## Project Structure
+
+```text
+HK-Intelligent-Trip-Planner/
+├─ frontend/                      # React frontend
+│  ├─ src/
+│  ├─ public/                     # only if present
+│  ├─ package.json
+│  ├─ package-lock.json
+│  ├─ vite.config.ts
+│  ├─ index.html
+│  ├─ tailwind.config.js
+│  ├─ postcss.config.js
+│  └─ .env.example
+├─ budget_tool/                   # Budget estimation module
+├─ critic_agent/                  # Itinerary evaluation module
+├─ planner_agent/                 # Planner + prompt + schema + Ollama client
+├─ data/
+│  └─ hk_activities.json          # Activity dataset
+├─ api_server.py                  # FastAPI backend entry
+├─ requirements.txt               # Python dependencies
+├─ README.md                      # Project documentation
+├─ RUN_GUIDE.md                   # Local run instructions
+└─ .gitignore
 ```
-TOTAL TRIP BUDGET（整趟旅行总预算）
+
+---
+
+## Features
+
+- Multi-day Hong Kong itinerary generation
+- Budget-aware planning
+- Pace control (`relaxed`, `moderate`, `packed`)
+- Preference-based activity selection
+- Local LLM deployment with Ollama
+- Frontend-backend integrated workflow
+- Health check API for quick debugging
+
+---
+
+## Tech Stack
+
+### Frontend
+
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS
+- Lucide React
+
+### Backend
+
+- FastAPI
+- Pydantic
+- Uvicorn
+- Ollama Python client
+
+### Local LLM
+
+- Ollama
+- `mistral:7b`
+
+---
+
+## Environment Requirements
+
+Install these first:
+
+- Python 3.10+
+- Node.js 18+
+- npm
+- Ollama
+
+---
+
+## LLM Setup
+
+This project uses a **local** Mistral 7B model through Ollama.
+
+### Install the model
+
+```bash
+ollama pull mistral:7b
 ```
 
-系统流程：
+### Start Ollama
 
+```bash
+ollama serve
 ```
-总预算 → 固定成本估算 → 剩余活动预算 → 行程生成 → 最终预算校验
+
+If Ollama is not running, the backend may return errors such as:
+
+- `Failed to generate itinerary`
+- `Planner output is invalid`
+- `503 Service Unavailable`
+
+---
+
+## Backend Setup
+
+In the project root directory:
+
+```bash
+pip install -r requirements.txt
+uvicorn api_server:app --reload --host 127.0.0.1 --port 8000
+```
+
+### Backend health check
+
+Open this URL in the browser after starting the backend:
+
+```text
+http://127.0.0.1:8000/api/health
+```
+
+A healthy response should contain fields like:
+
+- `ok`
+- `model`
+- `data_path`
+- `activities_loaded`
+
+---
+
+## Frontend Setup
+
+Open a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+By default, Vite runs at:
+
+```text
+http://127.0.0.1:5173
 ```
 
 ---
 
-### ✅ 3. 不信任 LLM 的数值
+## Frontend Environment Variables
 
-所有以下字段：
+Copy `.env.example` to `.env` inside the `frontend/` directory.
 
-* cost
-* duration
-* daily_cost
-* total_cost
+Example:
 
-👉 **全部由代码从 dataset 回填**
+```env
+VITE_API_URL=/api/travel-plan
+VITE_USE_MOCK=false
+```
 
----
+### Notes
 
-### ✅ 4. 强约束：只能使用数据集中的活动
-
-LLM 被严格限制：
-
-* ❌ 不允许编造活动
-* ❌ 不允许输出 dataset 外的内容
-* ❌ 若无匹配偏好 → 忽略，不编造
+- `VITE_USE_MOCK=false` means the frontend will call the real backend.
+- `VITE_API_URL=/api/travel-plan` works with the Vite proxy configuration.
 
 ---
 
-# 🧩 模块说明
+## API
 
-## 1. Budget Tool（预算模块）
+### `GET /api/health`
 
-负责：
+Checks whether the backend and dataset load correctly.
 
-* 推断预算风格（economy / standard / premium）
-* 估算固定成本：
+### `POST /api/travel-plan`
 
-  * 住宿
-  * 餐饮
-  * 交通
-  * 杂项
-* 计算活动预算（activity budget）
+Generates a travel plan.
 
----
-
-## 2. Planner Agent（行程生成）
-
-输入：
-
-* 用户请求
-* 活动数据集
-* 活动预算 cap
-
-输出：
-
-* 每天 morning / afternoon / evening 的活动名称
-* 简短理由
-
-⚠️ 不输出任何预算数值
-
----
-
-## 3. Resolver / Normalizer（关键模块）
-
-负责：
-
-* 根据 activity_name 查 dataset
-* 补全真实字段：
-
-  * area
-  * category
-  * cost_hkd
-  * duration_hours
-* 计算：
-
-  * daily_cost
-  * total_cost
-
-👉 **这是系统稳定的关键**
-
----
-
-## 4. Budget Tool（二次使用）
-
-再次计算：
-
-* 活动总费用
-* 总旅行费用
-* 是否超预算
-
----
-
-## 5. Critic Agent（评估模块）
-
-评估：
-
-* 预算合理性
-* 行程节奏
-* 偏好匹配
-* 跨区问题
-* 时间合理性
-
-输出：
-
-* score（评分）
-* issues（问题）
-* suggestions（建议）
-
----
-
-# 🔁 当前完整流程
-
-1. 读取活动数据（hk_activities.json）
-2. Budget Tool 估算固定成本
-3. 得到 activity_budget_hkd
-4. 构建 prompt（包含预算约束）
-5. LLM 选择活动
-6. 提取 JSON
-7. 结构校验
-8. Resolver 回填真实数据
-9. Budget Tool 计算最终预算
-10. Critic Agent 评估质量
-11. 输出最终结果
-
----
-
-# 📊 示例输出结构
+Example request body:
 
 ```json
 {
   "destination": "Hong Kong",
-  "days": 2,
-  "activity_budget_hkd": 3750,
-  "total_estimated_activity_cost_hkd": 406,
-  "activities_within_budget": true,
-  "itinerary": [
-    {
-      "day": 1,
-      "morning": {...},
-      "afternoon": {...},
-      "evening": {...},
-      "daily_cost_hkd": 180
-    }
-  ],
-  "planning_summary": "...",
-  "budget_context": {...}
+  "days": 3,
+  "total_budget_hkd": 3000,
+  "preferences": ["food", "nature"],
+  "pace": "moderate",
+  "must_include": ["Victoria Peak"],
+  "avoid": ["Disneyland"],
+  "travelers": 2,
+  "budget_style": "standard"
 }
 ```
 
 ---
 
-# 🤖 使用模型
+## Common Errors
 
-本项目使用：
+### 1. `500 Internal Server Error`
 
-```
-mistral:7b (via Ollama)
-```
+Possible causes:
 
-优势：
+- Dataset path not found
+- Python dependency missing
+- Planner output validation failed
 
-* 免费
-* 本地运行
-* 无 API key
-* 适合课程项目
+### 2. `503 Service Unavailable`
+
+Possible causes:
+
+- Ollama is not running
+- `mistral:7b` is not installed
+- Backend cannot connect to Ollama
+
+### 3. `Planner output is invalid`
+
+This usually means the backend successfully called the model, but the model returned an incomplete or invalid itinerary.
+
+Example:
+
+- requested `days = 6`
+- model only returned 1 itinerary day
+- backend validation rejected the result
+
+This is a **backend / LLM-generation issue**, not a frontend rendering issue.
 
 ---
 
-# ⚙️ 运行方式
+## What to Upload to GitHub
+
+You should upload the **project source code and documentation**, not your entire local environment.
+
+### Upload these files and folders
+
+```text
+frontend/
+budget_tool/
+critic_agent/
+planner_agent/
+data/
+api_server.py
+requirements.txt
+README.md
+RUN_GUIDE.md
+.gitignore
+```
+
+If these files are part of the project and needed to run it, keep them too:
+
+```text
+frontend/package.json
+frontend/package-lock.json
+frontend/vite.config.ts
+frontend/index.html
+frontend/tailwind.config.js
+frontend/postcss.config.js
+frontend/.env.example
+```
+
+### Do NOT upload these
+
+```text
+node_modules/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+dist/
+build/
+.env
+.vscode/
+.idea/
+*.log
+*.zip
+*.rar
+*.7z
+```
+
+### Do NOT upload the local Mistral model
+
+Do **not** upload:
+
+- Ollama model weights
+- local model cache
+- any large runtime files created by Ollama
+
+Instead, explain in `README.md` that users should run:
 
 ```bash
-python -m planner_agent.test_planner
+ollama pull mistral:7b
+ollama serve
 ```
 
-或：
+---
+
+## Recommended `.gitignore`
+
+Use this in the project root:
+
+```gitignore
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.env
+.pytest_cache/
+
+# Frontend
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Archives
+*.zip
+*.rar
+*.7z
+
+# Notebook
+.ipynb_checkpoints/
+```
+
+---
+
+## How to Upload This Project to GitHub
+
+### Option 1: Upload with Git command line
+
+#### Step 1: Open terminal in the project root
+
+Example:
 
 ```bash
-python -m critic_agent.test_critic
+cd "C:\Users\YourName\Desktop\HK-Intelligent-Trip-Planner"
+```
+
+#### Step 2: Initialize Git
+
+```bash
+git init
+```
+
+#### Step 3: Add `.gitignore`
+
+Create a `.gitignore` file in the root directory and paste the recommended content above.
+
+#### Step 4: Check what will be uploaded
+
+```bash
+git status
+```
+
+Make sure these are **not** listed:
+
+- `node_modules`
+- `.venv`
+- `__pycache__`
+- model files
+- zip files
+
+#### Step 5: Add project files
+
+```bash
+git add .
+```
+
+#### Step 6: Commit
+
+```bash
+git commit -m "Initial commit for HK Intelligent Trip Planner"
+```
+
+#### Step 7: Create a GitHub repository
+
+On GitHub:
+
+1. Click **New repository**
+2. Enter repository name, for example:
+   - `HK-Intelligent-Trip-Planner`
+3. Choose **Public** or **Private**
+4. Click **Create repository**
+
+#### Step 8: Connect local project to GitHub
+
+Copy the repository URL from GitHub, then run:
+
+```bash
+git remote add origin https://github.com/YOUR_USERNAME/HK-Intelligent-Trip-Planner.git
+```
+
+#### Step 9: Push to GitHub
+
+```bash
+git branch -M main
+git push -u origin main
 ```
 
 ---
 
-# 🧪 重要设计：活动采样
+### Option 2: Upload through GitHub website
 
-```python
-activities = random.sample(activities, 10)
-```
+If you do not want to use command line:
 
-原因：
-
-* 控制 prompt 长度
-* 避免 LLM 输出崩溃（JSON截断）
-
----
-
-# 🛑 已解决的关键问题
-
-| 问题              | 当前状态   |
-| --------------- | ------ |
-| LLM 编造活动        | ✅ 已解决  |
-| 预算不一致           | ✅ 已解决  |
-| summary 与真实值冲突  | ✅ 已解决  |
-| must_include 失效 | ✅ 已修复  |
-| JSON 不稳定        | ✅ 大幅改善 |
-
----
-
-# ⚠️ 已知限制
-
-* 本地 LLM 仍可能：
-
-  * JSON 截断
-  * 忽略部分约束（概率性）
-* 预算为启发式估算
-* 数据集规模有限
+1. Create a new repository on GitHub.
+2. Click **uploading an existing file**.
+3. Drag these folders/files into the page:
+   - `frontend/`
+   - `budget_tool/`
+   - `critic_agent/`
+   - `planner_agent/`
+   - `data/`
+   - `api_server.py`
+   - `requirements.txt`
+   - `README.md`
+   - `RUN_GUIDE.md`
+   - `.gitignore`
+4. Do **not** drag:
+   - `node_modules/`
+   - `.venv/`
+   - `__pycache__/`
+   - any zip package
+   - any model file
+5. Commit the upload.
 
 ---
 
-# 🚀 可选优化方向
+## Before Pushing: Final Checklist
 
-* 引入 replan（基于 critic feedback）
-* 提升预算利用率
-* 更精细的区域聚类
-* 多用户支持
-* 前端界面
+Make sure your repository contains:
+
+- source code
+- dataset file required by the project
+- dependency files
+- README
+- `.gitignore`
+
+Make sure your repository does **not** contain:
+
+- local Python environment
+- `node_modules`
+- cache folders
+- logs
+- model weights
+- zip archives
 
 ---
 
-# 🧑‍💻 开发注意事项
+## Suggested Submission Notes
 
-⚠️ 不要破坏以下原则：
+If this is for a course project, you can describe it like this:
 
-* 不要让 LLM 计算预算
-* 不要信任 LLM 的 cost
-* 必须通过 dataset 回填数据
-* JSON schema 必须严格一致
+> This project is a Hong Kong intelligent trip planner that integrates a React frontend, a FastAPI backend, and a locally deployed LLM through Ollama. The system accepts user travel preferences and budget, then generates a multi-day itinerary with budget analysis and quality critique.
 
 ---
 
-# 📎 数据集
+## Acknowledgements
 
-路径：
-
-```
-data/hk_activities.json
-```
-
-包含约 40+ 香港活动：
-
-* sightseeing
-* food
-* culture
-* shopping
-* nightlife
-* museum
+- FastAPI
+- React
+- Vite
+- Tailwind CSS
+- Ollama
+- Mistral 7B
 
